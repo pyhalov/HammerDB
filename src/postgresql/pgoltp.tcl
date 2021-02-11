@@ -186,7 +186,9 @@ END LOOP;
 
 COMMIT;
 EXCEPTION
-WHEN serialization_failure OR deadlock_detected OR no_data_found
+WHEN serialization_failure
+THEN NULL;
+WHEN deadlock_detected OR no_data_found
 THEN ROLLBACK;
 END; }
 set sql(3) { CREATE OR REPLACE PROCEDURE DELIVERY (
@@ -225,7 +227,9 @@ COMMIT;
 DBMS_OUTPUT.PUT_LINE('D: ' || d_d_id || 'O: ' || d_no_o_id || 'time ' || tstamp);
 END LOOP;
 EXCEPTION
-WHEN serialization_failure OR deadlock_detected OR no_data_found
+WHEN serialization_failure
+THEN NULL;
+WHEN deadlock_detected OR no_data_found
 THEN ROLLBACK;
 END; }
 set sql(4) { CREATE OR REPLACE PROCEDURE PAYMENT (
@@ -347,7 +351,9 @@ VALUES (p_c_d_id, p_c_w_id, p_c_id, p_d_id,
 p_w_id, tstamp, p_h_amount, h_data);
 COMMIT;
 EXCEPTION
-WHEN serialization_failure OR deadlock_detected OR no_data_found
+WHEN serialization_failure
+THEN NULL;
+WHEN deadlock_detected OR no_data_found
 THEN ROLLBACK;
 END; }
 set sql(5) { CREATE OR REPLACE PROCEDURE OSTAT (
@@ -430,7 +436,9 @@ os_ol_delivery_d(i) := os_c_line.ol_delivery_d;
 i := i+1;
 END LOOP;
 EXCEPTION
-WHEN serialization_failure OR deadlock_detected OR no_data_found
+WHEN serialization_failure
+THEN NULL;
+WHEN deadlock_detected OR no_data_found
 THEN ROLLBACK;
 END; }
 set sql(6) { CREATE OR REPLACE PROCEDURE SLEV (
@@ -452,7 +460,9 @@ ol_o_id >= (st_o_id - 20) AND s_w_id = st_w_id AND
 s_i_id = ol_i_id AND s_quantity < threshold;
 COMMIT;
 EXCEPTION
-WHEN serialization_failure OR deadlock_detected OR no_data_found
+WHEN serialization_failure
+THEN NULL;
+WHEN deadlock_detected OR no_data_found
 THEN ROLLBACK;
 END; }
 for { set i 1 } { $i <= 6 } { incr i } {
@@ -720,7 +730,9 @@ BEGIN
 	END LOOP;
 
     EXCEPTION
-        WHEN serialization_failure OR deadlock_detected OR no_data_found
+	WHEN serialization_failure
+            THEN NULL;
+        WHEN deadlock_detected OR no_data_found
             THEN ROLLBACK;
 END;
 $$
@@ -789,7 +801,9 @@ BEGIN
 	   AND c_w_id = d_w_id;
 
     EXCEPTION
-		WHEN serialization_failure OR deadlock_detected OR no_data_found
+		WHEN serialization_failure
+                THEN NULL;
+		WHEN deadlock_detected OR no_data_found
 	        THEN ROLLBACK;
 END;
 $$
@@ -907,7 +921,9 @@ BEGIN
 	VALUES (p_c_d_id, p_c_w_id, p_c_id, p_d_id,	p_w_id, tstamp, p_h_amount, h_data);
 
     EXCEPTION
-		WHEN serialization_failure OR deadlock_detected OR no_data_found
+		WHEN serialization_failure
+			THEN NULL;
+		WHEN deadlock_detected OR no_data_found
 			THEN ROLLBACK;
 END;
 $$
@@ -977,7 +993,9 @@ BEGIN
         os_c_line := os_c_line || ',' || os_ol.ol_i_id || ',' || os_ol.ol_supply_w_id || ',' || os_ol.ol_quantity || ',' || os_ol.ol_amount || ',' || os_ol.ol_delivery_d;
     END LOOP;
 EXCEPTION
-    WHEN serialization_failure OR deadlock_detected OR no_data_found
+    WHEN serialization_failure
+	THEN NULL;
+    WHEN deadlock_detected OR no_data_found
         THEN ROLLBACK;
 END;
 $$
@@ -1259,7 +1277,9 @@ BEGIN
     RETURN no_s_quantity;
 
     EXCEPTION
-        WHEN serialization_failure OR deadlock_detected OR no_data_found
+	WHEN serialization_failure
+	    THEN RETURN 0;
+        WHEN deadlock_detected OR no_data_found
             THEN ROLLBACK;
 END;
 ' LANGUAGE 'plpgsql';
@@ -1328,7 +1348,9 @@ BEGIN
     RETURN 1;
 
 	EXCEPTION
-		WHEN serialization_failure OR deadlock_detected OR no_data_found
+		WHEN serialization_failure
+		THEN RETURN 1;
+		WHEN deadlock_detected OR no_data_found
 	        THEN ROLLBACK;
 END;
 ' LANGUAGE 'plpgsql';
@@ -1454,7 +1476,9 @@ BEGIN
 	RETURN p_c_id;
 
 	EXCEPTION
-		WHEN serialization_failure OR deadlock_detected OR no_data_found
+		WHEN serialization_failure
+			THEN RETURN 1;
+		WHEN deadlock_detected OR no_data_found
 			THEN ROLLBACK;
 END;
 ' LANGUAGE 'plpgsql';
@@ -1519,7 +1543,9 @@ LOOP
 RETURN NEXT os_ol;
 END LOOP;
 EXCEPTION
-WHEN serialization_failure OR deadlock_detected OR no_data_found
+WHEN serialization_failure
+THEN RETURN;
+WHEN deadlock_detected OR no_data_found
 THEN ROLLBACK;
 END;
 ' LANGUAGE 'plpgsql';
@@ -1545,7 +1571,9 @@ BEGIN
 
 	RETURN stock_count;
 EXCEPTION
-	WHEN serialization_failure OR deadlock_detected OR no_data_found
+	WHEN serialization_failure
+		THEN RETURN 0;
+	WHEN deadlock_detected OR no_data_found
 		THEN ROLLBACK;
 END;
 ' LANGUAGE 'plpgsql';
