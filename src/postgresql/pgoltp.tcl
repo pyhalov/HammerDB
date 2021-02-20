@@ -1051,10 +1051,13 @@ DECLARE
     supply_wid_array	SMALLINT[];
     quantity_array		SMALLINT[];
     order_line_array	SMALLINT[];
+    stock_dist		CHAR(24);
     stock_dist_array	CHAR(24)[];
+    lo_s_quantity		CHAR(24);
     s_quantity_array	SMALLINT[];
-    price_array			NUMERIC(5,2)[];
-    amount_array		NUMERIC(5,2)[];
+    price			NUMERIC(5,2);
+    s_amount		NUMERIC(5,2);
+    amount_array	NUMERIC(5,2)[];
 BEGIN
 	no_o_all_local := 1;
 	SELECT c_discount, c_last, c_credit, w_tax
@@ -1093,162 +1096,136 @@ BEGIN
 	INSERT INTO ORDERS (o_id, o_d_id, o_w_id, o_c_id, o_entry_d, o_ol_cnt, o_all_local) VALUES (no_d_next_o_id, no_d_id, no_w_id, no_c_id, current_timestamp, no_o_ol_cnt, no_o_all_local);
 	INSERT INTO NEW_ORDER (no_o_id, no_d_id, no_w_id) VALUES (no_d_next_o_id, no_d_id, no_w_id);
 
-	SELECT array_agg ( i_price )
-	INTO price_array
-	FROM UNNEST(item_id_array) item_id
-	LEFT JOIN item ON i_id = item_id;
+	FOR loop_counter IN 1 .. no_o_ol_cnt
+	LOOP
+		SELECT i_price FROM item
+		WHERE i_id = item_id_array[loop_counter]
+		INTO price;
 
-	IF no_d_id = 1
-	THEN
-		WITH stock_update AS (
-	        UPDATE stock
-    	       SET s_quantity = ( CASE WHEN s_quantity < (item_stock.quantity + 10) THEN s_quantity + 91 ELSE s_quantity END) - item_stock.quantity
-			  FROM UNNEST(item_id_array, supply_wid_array, quantity_array, price_array)
-				   AS item_stock (item_id, supply_wid, quantity, price)
-			 WHERE stock.s_i_id = item_stock.item_id
-			   AND stock.s_w_id = item_stock.supply_wid
-			   AND stock.s_w_id = ANY(supply_wid_array)
-			RETURNING stock.s_dist_01 as s_dist, stock.s_quantity, ( item_stock.quantity + item_stock.price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
-    	)
-		SELECT array_agg ( s_dist ), array_agg ( s_quantity ), array_agg ( amount )
-		FROM stock_update
-		INTO stock_dist_array, s_quantity_array, amount_array;
-	ELSIF no_d_id = 2
-	THEN
-		WITH stock_update AS (
-	        UPDATE stock
-    	       SET s_quantity = ( CASE WHEN s_quantity < (item_stock.quantity + 10) THEN s_quantity + 91 ELSE s_quantity END) - item_stock.quantity
-			  FROM UNNEST(item_id_array, supply_wid_array, quantity_array, price_array)
-				   AS item_stock (item_id, supply_wid, quantity, price)
-			 WHERE stock.s_i_id = item_stock.item_id
-			   AND stock.s_w_id = item_stock.supply_wid
-			   AND stock.s_w_id = ANY(supply_wid_array)
-			RETURNING stock.s_dist_02 as s_dist, stock.s_quantity, ( item_stock.quantity + item_stock.price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
-    	)
-		SELECT array_agg ( s_dist ), array_agg ( s_quantity ), array_agg ( amount )
-		FROM stock_update
-		INTO stock_dist_array, s_quantity_array, amount_array;
-	ELSIF no_d_id = 3
-	THEN
-		WITH stock_update AS (
-	        UPDATE stock
-    	       SET s_quantity = ( CASE WHEN s_quantity < (item_stock.quantity + 10) THEN s_quantity + 91 ELSE s_quantity END) - item_stock.quantity
-			  FROM UNNEST(item_id_array, supply_wid_array, quantity_array, price_array)
-				   AS item_stock (item_id, supply_wid, quantity, price)
-			 WHERE stock.s_i_id = item_stock.item_id
-			   AND stock.s_w_id = item_stock.supply_wid
-			   AND stock.s_w_id = ANY(supply_wid_array)
-			RETURNING stock.s_dist_03 as s_dist, stock.s_quantity, ( item_stock.quantity + item_stock.price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
-    	)
-		SELECT array_agg ( s_dist ), array_agg ( s_quantity ), array_agg ( amount )
-		FROM stock_update
-		INTO stock_dist_array, s_quantity_array, amount_array;
-	ELSIF no_d_id = 4
-	THEN
-		WITH stock_update AS (
-	        UPDATE stock
-    	       SET s_quantity = ( CASE WHEN s_quantity < (item_stock.quantity + 10) THEN s_quantity + 91 ELSE s_quantity END) - item_stock.quantity
-			  FROM UNNEST(item_id_array, supply_wid_array, quantity_array, price_array)
-				   AS item_stock (item_id, supply_wid, quantity, price)
-			 WHERE stock.s_i_id = item_stock.item_id
-			   AND stock.s_w_id = item_stock.supply_wid
-			   AND stock.s_w_id = ANY(supply_wid_array)
-			RETURNING stock.s_dist_04 as s_dist, stock.s_quantity, ( item_stock.quantity + item_stock.price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
-    	)
-		SELECT array_agg ( s_dist ), array_agg ( s_quantity ), array_agg ( amount )
-		FROM stock_update
-		INTO stock_dist_array, s_quantity_array, amount_array;
-	ELSIF no_d_id = 5
-	THEN
-		WITH stock_update AS (
-	        UPDATE stock
-    	       SET s_quantity = ( CASE WHEN s_quantity < (item_stock.quantity + 10) THEN s_quantity + 91 ELSE s_quantity END) - item_stock.quantity
-			  FROM UNNEST(item_id_array, supply_wid_array, quantity_array, price_array)
-				   AS item_stock (item_id, supply_wid, quantity, price)
-			 WHERE stock.s_i_id = item_stock.item_id
-			   AND stock.s_w_id = item_stock.supply_wid
-			   AND stock.s_w_id = ANY(supply_wid_array)
-			RETURNING stock.s_dist_05 as s_dist, stock.s_quantity, ( item_stock.quantity + item_stock.price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
-    	)
-		SELECT array_agg ( s_dist ), array_agg ( s_quantity ), array_agg ( amount )
-		FROM stock_update
-		INTO stock_dist_array, s_quantity_array, amount_array;
-	ELSIF no_d_id = 6
-	THEN
-		WITH stock_update AS (
-	        UPDATE stock
-    	       SET s_quantity = ( CASE WHEN s_quantity < (item_stock.quantity + 10) THEN s_quantity + 91 ELSE s_quantity END) - item_stock.quantity
-			  FROM UNNEST(item_id_array, supply_wid_array, quantity_array, price_array)
-				   AS item_stock (item_id, supply_wid, quantity, price)
-			 WHERE stock.s_i_id = item_stock.item_id
-			   AND stock.s_w_id = item_stock.supply_wid
-			   AND stock.s_w_id = ANY(supply_wid_array)
-			RETURNING stock.s_dist_06 as s_dist, stock.s_quantity, ( item_stock.quantity + item_stock.price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
-    	)
-		SELECT array_agg ( s_dist ), array_agg ( s_quantity ), array_agg ( amount )
-		FROM stock_update
-		INTO stock_dist_array, s_quantity_array, amount_array;
-	ELSIF no_d_id = 7
-	THEN
-		WITH stock_update AS (
-	        UPDATE stock
-    	       SET s_quantity = ( CASE WHEN s_quantity < (item_stock.quantity + 10) THEN s_quantity + 91 ELSE s_quantity END) - item_stock.quantity
-			  FROM UNNEST(item_id_array, supply_wid_array, quantity_array, price_array)
-				   AS item_stock (item_id, supply_wid, quantity, price)
-			 WHERE stock.s_i_id = item_stock.item_id
-			   AND stock.s_w_id = item_stock.supply_wid
-			   AND stock.s_w_id = ANY(supply_wid_array)
-			RETURNING stock.s_dist_07 as s_dist, stock.s_quantity, ( item_stock.quantity + item_stock.price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
-    	)
-		SELECT array_agg ( s_dist ), array_agg ( s_quantity ), array_agg ( amount )
-		FROM stock_update
-		INTO stock_dist_array, s_quantity_array, amount_array;
-	ELSIF no_d_id = 8
-	THEN
-		WITH stock_update AS (
-	        UPDATE stock
-    	       SET s_quantity = ( CASE WHEN s_quantity < (item_stock.quantity + 10) THEN s_quantity + 91 ELSE s_quantity END) - item_stock.quantity
-			  FROM UNNEST(item_id_array, supply_wid_array, quantity_array, price_array)
-				   AS item_stock (item_id, supply_wid, quantity, price)
-			 WHERE stock.s_i_id = item_stock.item_id
-			   AND stock.s_w_id = item_stock.supply_wid
-			   AND stock.s_w_id = ANY(supply_wid_array)
-			RETURNING stock.s_dist_08 as s_dist, stock.s_quantity, ( item_stock.quantity + item_stock.price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
-    	)
-		SELECT array_agg ( s_dist ), array_agg ( s_quantity ), array_agg ( amount )
-		FROM stock_update
-		INTO stock_dist_array, s_quantity_array, amount_array;
-	ELSIF no_d_id = 9
-	THEN
-		WITH stock_update AS (
-	        UPDATE stock
-    	       SET s_quantity = ( CASE WHEN s_quantity < (item_stock.quantity + 10) THEN s_quantity + 91 ELSE s_quantity END) - item_stock.quantity
-			  FROM UNNEST(item_id_array, supply_wid_array, quantity_array, price_array)
-				   AS item_stock (item_id, supply_wid, quantity, price)
-			 WHERE stock.s_i_id = item_stock.item_id
-			   AND stock.s_w_id = item_stock.supply_wid
-			   AND stock.s_w_id = ANY(supply_wid_array)
-			RETURNING stock.s_dist_09 as s_dist, stock.s_quantity, ( item_stock.quantity + item_stock.price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
-    	)
-		SELECT array_agg ( s_dist ), array_agg ( s_quantity ), array_agg ( amount )
-		FROM stock_update
-		INTO stock_dist_array, s_quantity_array, amount_array;
-	ELSIF no_d_id = 10
-	THEN
-		WITH stock_update AS (
-	        UPDATE stock
-    	       SET s_quantity = ( CASE WHEN s_quantity < (item_stock.quantity + 10) THEN s_quantity + 91 ELSE s_quantity END) - item_stock.quantity
-			  FROM UNNEST(item_id_array, supply_wid_array, quantity_array, price_array)
-				   AS item_stock (item_id, supply_wid, quantity, price)
-			 WHERE stock.s_i_id = item_stock.item_id
-			   AND stock.s_w_id = item_stock.supply_wid
-			   AND stock.s_w_id = ANY(supply_wid_array)
-			RETURNING stock.s_dist_10 as s_dist, stock.s_quantity, ( item_stock.quantity + item_stock.price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
-    	)
-		SELECT array_agg ( s_dist ), array_agg ( s_quantity ), array_agg ( amount )
-		FROM stock_update
-		INTO stock_dist_array, s_quantity_array, amount_array;
-	END IF;
+		IF no_d_id = 1
+		THEN
+			WITH stock_update AS (
+				UPDATE stock
+				SET s_quantity = ( CASE WHEN s_quantity < (quantity_array[loop_counter] + 10) THEN s_quantity + 91 ELSE s_quantity END) - quantity_array[loop_counter]
+				WHERE stock.s_i_id = item_id_array[loop_counter]
+				AND stock.s_w_id = supply_wid_array[loop_counter]
+				RETURNING stock.s_dist_01 as s_dist, stock.s_quantity, ( quantity_array[loop_counter]  + price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
+			)
+			SELECT s_dist, s_quantity, amount
+			FROM stock_update
+			INTO stock_dist, lo_s_quantity, s_amount;
+		ELSIF no_d_id = 2
+		THEN
+			WITH stock_update AS (
+				UPDATE stock
+				SET s_quantity = ( CASE WHEN s_quantity < (quantity_array[loop_counter] + 10) THEN s_quantity + 91 ELSE s_quantity END) - quantity_array[loop_counter]
+				WHERE stock.s_i_id = item_id_array[loop_counter]
+				AND stock.s_w_id = supply_wid_array[loop_counter]
+				RETURNING stock.s_dist_02 as s_dist, stock.s_quantity, ( quantity_array[loop_counter]  + price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
+			)
+			SELECT s_dist, s_quantity, amount
+			FROM stock_update
+			INTO stock_dist, lo_s_quantity, s_amount;
+		ELSIF no_d_id = 3
+		THEN
+			WITH stock_update AS (
+				UPDATE stock
+				SET s_quantity = ( CASE WHEN s_quantity < (quantity_array[loop_counter] + 10) THEN s_quantity + 91 ELSE s_quantity END) - quantity_array[loop_counter]
+				WHERE stock.s_i_id = item_id_array[loop_counter]
+				AND stock.s_w_id = supply_wid_array[loop_counter]
+				RETURNING stock.s_dist_03 as s_dist, stock.s_quantity, ( quantity_array[loop_counter]  + price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
+			)
+			SELECT s_dist, s_quantity, amount
+			FROM stock_update
+			INTO stock_dist, lo_s_quantity, s_amount;
+		ELSIF no_d_id = 4
+		THEN
+			WITH stock_update AS (
+				UPDATE stock
+				SET s_quantity = ( CASE WHEN s_quantity < (quantity_array[loop_counter] + 10) THEN s_quantity + 91 ELSE s_quantity END) - quantity_array[loop_counter]
+				WHERE stock.s_i_id = item_id_array[loop_counter]
+				AND stock.s_w_id = supply_wid_array[loop_counter]
+				RETURNING stock.s_dist_04 as s_dist, stock.s_quantity, ( quantity_array[loop_counter]  + price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
+			)
+			SELECT s_dist, s_quantity, amount
+			FROM stock_update
+			INTO stock_dist, lo_s_quantity, s_amount;
+		ELSIF no_d_id = 5
+		THEN
+			WITH stock_update AS (
+				UPDATE stock
+				SET s_quantity = ( CASE WHEN s_quantity < (quantity_array[loop_counter] + 10) THEN s_quantity + 91 ELSE s_quantity END) - quantity_array[loop_counter]
+				WHERE stock.s_i_id = item_id_array[loop_counter]
+				AND stock.s_w_id = supply_wid_array[loop_counter]
+				RETURNING stock.s_dist_05 as s_dist, stock.s_quantity, ( quantity_array[loop_counter]  + price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
+			)
+			SELECT s_dist, s_quantity, amount
+			FROM stock_update
+			INTO stock_dist, lo_s_quantity, s_amount;
+		ELSIF no_d_id = 6
+		THEN
+			WITH stock_update AS (
+				UPDATE stock
+				SET s_quantity = ( CASE WHEN s_quantity < (quantity_array[loop_counter] + 10) THEN s_quantity + 91 ELSE s_quantity END) - quantity_array[loop_counter]
+				WHERE stock.s_i_id = item_id_array[loop_counter]
+				AND stock.s_w_id = supply_wid_array[loop_counter]
+				RETURNING stock.s_dist_06 as s_dist, stock.s_quantity, ( quantity_array[loop_counter]  + price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
+			)
+			SELECT s_dist, s_quantity, amount
+			FROM stock_update
+			INTO stock_dist, lo_s_quantity, s_amount;
+		ELSIF no_d_id = 7
+		THEN
+			WITH stock_update AS (
+				UPDATE stock
+				SET s_quantity = ( CASE WHEN s_quantity < (quantity_array[loop_counter] + 10) THEN s_quantity + 91 ELSE s_quantity END) - quantity_array[loop_counter]
+				WHERE stock.s_i_id = item_id_array[loop_counter]
+				AND stock.s_w_id = supply_wid_array[loop_counter]
+				RETURNING stock.s_dist_07 as s_dist, stock.s_quantity, ( quantity_array[loop_counter]  + price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
+			)
+			SELECT s_dist, s_quantity, amount
+			FROM stock_update
+			INTO stock_dist, lo_s_quantity, s_amount;
+		ELSIF no_d_id = 8
+		THEN
+			WITH stock_update AS (
+				UPDATE stock
+				SET s_quantity = ( CASE WHEN s_quantity < (quantity_array[loop_counter] + 10) THEN s_quantity + 91 ELSE s_quantity END) - quantity_array[loop_counter]
+				WHERE stock.s_i_id = item_id_array[loop_counter]
+				AND stock.s_w_id = supply_wid_array[loop_counter]
+				RETURNING stock.s_dist_08 as s_dist, stock.s_quantity, ( quantity_array[loop_counter]  + price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
+			)
+			SELECT s_dist, s_quantity, amount
+			FROM stock_update
+			INTO stock_dist, lo_s_quantity, s_amount;
+		ELSIF no_d_id = 9
+		THEN
+			WITH stock_update AS (
+				UPDATE stock
+				SET s_quantity = ( CASE WHEN s_quantity < (quantity_array[loop_counter] + 10) THEN s_quantity + 91 ELSE s_quantity END) - quantity_array[loop_counter]
+				WHERE stock.s_i_id = item_id_array[loop_counter]
+				AND stock.s_w_id = supply_wid_array[loop_counter]
+				RETURNING stock.s_dist_10 as s_dist, stock.s_quantity, ( quantity_array[loop_counter]  + price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
+			)
+			SELECT s_dist, s_quantity, amount
+			FROM stock_update
+			INTO stock_dist, lo_s_quantity, s_amount;
+		ELSIF no_d_id = 10
+		THEN
+			WITH stock_update AS (
+				UPDATE stock
+				SET s_quantity = ( CASE WHEN s_quantity < (quantity_array[loop_counter] + 10) THEN s_quantity + 91 ELSE s_quantity END) - quantity_array[loop_counter]
+				WHERE stock.s_i_id = item_id_array[loop_counter]
+				AND stock.s_w_id = supply_wid_array[loop_counter]
+				RETURNING stock.s_dist_10 as s_dist, stock.s_quantity, ( quantity_array[loop_counter]  + price * ( 1 + no_w_tax + no_d_tax ) * ( 1 - no_c_discount ) ) amount
+			)
+			SELECT s_dist, s_quantity, amount
+			FROM stock_update
+			INTO stock_dist, lo_s_quantity, s_amount;
+		END IF;
+		amount_array[loop_counter] := s_amount;
+                stock_dist_array[loop_counter] := stock_dist;
+	END LOOP;
 
 	INSERT INTO order_line (ol_o_id, ol_d_id, ol_w_id, ol_number, ol_i_id, ol_supply_w_id, ol_quantity, ol_amount, ol_dist_info)
 	SELECT no_d_next_o_id,
