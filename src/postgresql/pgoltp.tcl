@@ -1267,58 +1267,38 @@ DECLARE
     d_o_carrier_id  ALIAS FOR $2;
     loop_counter	SMALLINT;
     d_id_in_array	SMALLINT[] := ARRAY[1,2,3,4,5,6,7,8,9,10];
-    l_d_id		SMALLINT;
+    d_d_id		SMALLINT;
     d_int_id		SMALLINT;
+    d_no_o_id              INTEGER;
+    d_c_id         NUMERIC;
     l_o_id 		INT;
     l_c_id 		INT;
     order_count		SMALLINT;
     sum_amounts     NUMERIC;
-
+    d_ol_total             NUMERIC;
     customer_count INT;
 BEGIN
-	FOR l_o_id, l_d_id IN (WITH new_order_delete AS (DELETE
-		 FROM new_order as del_new_order
-		USING UNNEST(d_id_in_array) AS d_ids
-		WHERE no_d_id = d_ids
-		  AND no_d_id = any(d_id_in_array)
-		  AND no_w_id = d_w_id
-		  AND del_new_order.no_o_id = (select min (select_new_order.no_o_id)
-						   from new_order as select_new_order
-						  where no_d_id = d_ids
-							and no_w_id = d_w_id)
-		RETURNING del_new_order.no_o_id, del_new_order.no_d_id
-		)
-		SELECT no_o_id,no_d_id FROM new_order_delete) LOOP
-
-		UPDATE orders
-		   SET o_carrier_id = d_o_carrier_id
-		 WHERE orders.o_id = l_o_id
-		   AND o_d_id = l_d_id
-		   AND o_w_id = d_w_id;
-
-		FOR  d_int_id, l_c_id, sum_amounts in (WITH order_line_update AS (
-			UPDATE order_line
-				SET ol_delivery_d = current_timestamp
-				WHERE ol_o_id = l_o_id
-					AND ol_d_id = l_d_id
-					AND ol_w_id = d_w_id
-				RETURNING ol_d_id, ol_o_id, ol_amount
-				)
-			SELECT ol_d_id, c_id, sum_amount
-			FROM ( SELECT ol_d_id,
-				       ( SELECT DISTINCT o_c_id FROM orders WHERE o_id = ol_o_id AND o_d_id = ol_d_id AND o_w_id = d_w_id) AS c_id,
-				        sum(ol_amount) AS sum_amount
-				   FROM order_line_update
-				  GROUP BY ol_d_id, ol_o_id ) AS inner_sum) LOOP
-
-			UPDATE customer
-			   SET c_balance = COALESCE(c_balance,0) + sum_amounts
-			 WHERE customer.c_id = l_c_id
-			   AND c_d_id = d_int_id
-			   AND c_w_id = d_w_id;
-		END LOOP;
+	FOR loop_counter IN 1 .. 10 LOOP
+		d_d_id := loop_counter;
+		SELECT no_o_id INTO d_no_o_id FROM new_order WHERE no_w_id = d_w_id AND no_d_id = d_d_id ORDER BY no_o_id ASC LIMIT 1;
+		DELETE FROM new_order WHERE no_w_id = d_w_id AND no_d_id = d_d_id AND no_o_id = d_no_o_id;
+		SELECT o_c_id INTO d_c_id FROM orders
+			WHERE o_id = d_no_o_id AND o_d_id = d_d_id AND
+			o_w_id = d_w_id;
+		UPDATE orders SET o_carrier_id = d_o_carrier_id
+			WHERE o_id = d_no_o_id AND o_d_id = d_d_id AND
+			o_w_id = d_w_id;
+		UPDATE order_line SET ol_delivery_d = current_timestamp
+			WHERE ol_o_id = d_no_o_id AND ol_d_id = d_d_id AND
+			ol_w_id = d_w_id;
+		SELECT SUM(ol_amount) INTO d_ol_total
+			FROM order_line
+			WHERE ol_o_id = d_no_o_id AND ol_d_id = d_d_id AND
+			ol_w_id = d_w_id;
+		UPDATE customer SET c_balance = coalesce(c_balance,0) + d_ol_total
+			WHERE c_id = d_c_id AND c_d_id = d_d_id AND
+			c_w_id = d_w_id;
 	END LOOP;
-
     RETURN 1;
 
 	EXCEPTION
