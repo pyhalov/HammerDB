@@ -1280,6 +1280,7 @@ BEGIN
 		 FROM new_order as del_new_order
 		USING UNNEST(d_id_in_array) AS d_ids
 		WHERE no_d_id = d_ids
+		  AND no_d_id = any(d_id_in_array)
 		  AND no_w_id = d_w_id
 		  AND del_new_order.no_o_id = (select min (select_new_order.no_o_id)
 						   from new_order as select_new_order
