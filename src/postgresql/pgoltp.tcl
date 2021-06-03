@@ -1290,16 +1290,16 @@ DECLARE
     d_o_carrier_id  ALIAS FOR $2;
     loop_counter	SMALLINT;
     d_id_in_array	SMALLINT[] := ARRAY[1,2,3,4,5,6,7,8,9,10];
-    l_d_id		SMALLINT;
-    d_int_id		SMALLINT;
-    l_o_id 		INT;
-    l_c_id 		INT;
+    d_id_array		SMALLINT[];
+    o_id_array 		INT[];
+    c_id_array 		INT[];
     order_count		SMALLINT;
-    sum_amounts     NUMERIC;
+    sum_amounts     NUMERIC[];
 
     customer_count INT;
 BEGIN
-	FOR l_o_id, l_d_id IN (WITH new_order_delete AS (DELETE
+	WITH new_order_delete AS (
+		DELETE
 		 FROM new_order as del_new_order
 		USING UNNEST(d_id_in_array) AS d_ids
 		WHERE no_d_id = d_ids
@@ -1311,36 +1311,40 @@ BEGIN
 							and no_w_id = d_w_id)
 		RETURNING del_new_order.no_o_id, del_new_order.no_d_id
 		)
-		SELECT no_o_id,no_d_id FROM new_order_delete) LOOP
+	SELECT array_agg(no_o_id), array_agg(no_d_id)
+	  FROM new_order_delete
+	  INTO o_id_array, d_id_array;
 
-		UPDATE orders
-		   SET o_carrier_id = d_o_carrier_id
-		 WHERE orders.o_id = l_o_id
-		   AND o_d_id = l_d_id
-		   AND o_w_id = d_w_id;
+	UPDATE orders
+	   SET o_carrier_id = d_o_carrier_id
+	  FROM UNNEST(o_id_array, d_id_array) AS ids(o_id, d_id)
+	 WHERE orders.o_id = ids.o_id
+	   AND o_d_id = ids.d_id
+	   AND o_w_id = d_w_id;
 
-		FOR  d_int_id, l_c_id, sum_amounts in (WITH order_line_update AS (
-			UPDATE order_line
-				SET ol_delivery_d = current_timestamp
-				WHERE ol_o_id = l_o_id
-					AND ol_d_id = l_d_id
-					AND ol_w_id = d_w_id
-				RETURNING ol_d_id, ol_o_id, ol_amount
-				)
-			SELECT ol_d_id, c_id, sum_amount
-			FROM ( SELECT ol_d_id,
-				       ( SELECT DISTINCT o_c_id FROM orders WHERE o_id = ol_o_id AND o_d_id = ol_d_id AND o_w_id = d_w_id) AS c_id,
-				        sum(ol_amount) AS sum_amount
-				   FROM order_line_update
-				  GROUP BY ol_d_id, ol_o_id ) AS inner_sum) LOOP
+	WITH order_line_update AS (
+        UPDATE order_line
+           SET ol_delivery_d = current_timestamp
+		  FROM UNNEST(o_id_array, d_id_array) AS ids(o_id, d_id)
+		 WHERE ol_o_id = ids.o_id
+           AND ol_d_id = ids.d_id
+           AND ol_w_id = d_w_id
+		RETURNING ol_d_id, ol_o_id, ol_amount
+		)
+	SELECT array_agg(ol_d_id), array_agg(c_id), array_agg(sum_amount)
+	  FROM ( SELECT ol_d_id,
+			       ( SELECT DISTINCT o_c_id FROM orders WHERE o_id = ol_o_id AND o_d_id = ol_d_id AND o_w_id = d_w_id) AS c_id,
+			        sum(ol_amount) AS sum_amount
+			   FROM order_line_update
+			  GROUP BY ol_d_id, ol_o_id ) AS inner_sum
+	  INTO d_id_array, c_id_array, sum_amounts;
 
-			UPDATE customer
-			   SET c_balance = COALESCE(c_balance,0) + sum_amounts
-			 WHERE customer.c_id = l_c_id
-			   AND c_d_id = d_int_id
-			   AND c_w_id = d_w_id;
-		END LOOP;
-	END LOOP;
+	UPDATE customer
+	   SET c_balance = COALESCE(c_balance,0) + ids_and_sums.sum_amounts
+	  FROM UNNEST(d_id_array, c_id_array, sum_amounts) AS ids_and_sums(d_id, c_id, sum_amounts)
+	 WHERE customer.c_id = ids_and_sums.c_id
+	   AND c_d_id = ids_and_sums.d_id
+	   AND c_w_id = d_w_id;
 
     RETURN 1;
 
