@@ -1048,7 +1048,7 @@ DECLARE
     no_o_all_local		SMALLINT;
     rbk					SMALLINT;
     item_id_array 		INT[];
-    supply_wid_array	SMALLINT[];
+    supply_wid_array	INT[];
     quantity_array		SMALLINT[];
     order_line_array	SMALLINT[];
     stock_dist_array	CHAR(24)[];
