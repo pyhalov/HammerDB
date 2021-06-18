@@ -2324,6 +2324,7 @@ set w_id_input $w_id_input_arr(max)
 	}
 #2.4.1.1 set warehouse_id stays constant for a given terminal
 set w_id  [ RandomNumber 1 $w_id_input ]  
+puts "set warehouse to $w_id"
 pg_select $mlda "select max(d_id) from district" d_id_input_arr {
 set d_id_input $d_id_input_arr(max)
 }
@@ -2781,6 +2782,7 @@ set w_id_input $w_id_input_arr(max)
 	}
 #2.4.1.1 set warehouse_id stays constant for a given terminal
 set w_id  [ RandomNumber 1 $w_id_input ]  
+puts "set warehouse to $w_id"
 pg_select $lda "select max(d_id) from district" d_id_input_arr {
 set d_id_input $d_id_input_arr(max)
 }
@@ -3225,6 +3227,7 @@ set w_id_input $w_id_input_arr(max)
 	}
 #2.4.1.1 set warehouse_id stays constant for a given terminal
 set w_id  [ RandomNumber 1 $w_id_input ]  
+puts "set warehouse to $w_id"
 pg_select $lda "select max(d_id) from district" d_id_input_arr {
 set d_id_input $d_id_input_arr(max)
 }
@@ -3688,6 +3691,7 @@ set w_id_input $w_id_input_arr(max)
 	}
 #2.4.1.1 set warehouse_id stays constant for a given terminal
 set w_id  [ RandomNumber 1 $w_id_input ]  
+puts "set warehouse to $w_id"
 pg_select $lda "select max(d_id) from district" d_id_input_arr {
 set d_id_input $d_id_input_arr(max)
 }
